@@ -1,6 +1,7 @@
+import React from "react";
 import Navbar from "./components/Navbar";
 import Logupload from "./components/Logupload";
-// import Dashboardcards from "./components/Dashboardcards";
+import Dashboardcards from "./components/Dashboardcards";
 import LogTable from "./components/LogTable";
 import Footer from "./components/Footer";
 
@@ -9,7 +10,7 @@ function App() {
     <>
       <Navbar />
       <main className="container">
-       {/* <Dashboardcards /> */}
+       <Dashboardcards />
         <Logupload />
         <LogTable />
       </main>
