@@ -1,124 +1,80 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Digital Forensics Tool</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-900 text-white p-6 font-sans">
-  <div class="max-w-5xl mx-auto">
-    <h1 class="text-3xl font-bold mb-6 text-center">🕵️ Digital Forensics Dashboard</h1>
+<script>
+  const API_URL = "https://your-backend-name.onrender.com";
 
-    <!-- Upload Form -->
-    <form id="uploadForm" class="mb-6 bg-gray-800 p-4 rounded shadow">
-      <label class="block mb-2 font-semibold">📤 Upload a .log File:</label>
-      <input type="file" id="logFile" accept=".log,.json" class="block w-full p-2 mb-4 text-black bg-white rounded" />
-      <button type="submit" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-semibold">
-        Upload & Analyze
-      </button>
-    </form>
+  const logList = document.getElementById("logList");
+  const incidentList = document.getElementById("incidentList");
 
-    <!-- Filter Section -->
-    <div class="mb-8 bg-gray-800 p-4 rounded shadow">
-      <h2 class="text-xl font-semibold mb-4">🔍 Filter Incidents</h2>
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <input type="text" id="search" placeholder="Search keyword (e.g. error)" class="p-2 rounded text-black w-full" />
-        <input type="date" id="from" class="p-2 rounded text-black w-full" />
-        <input type="date" id="to" class="p-2 rounded text-black w-full" />
-        <button onclick="fetchIncidents()" class="bg-yellow-500 hover:bg-yellow-600 px-4 py-2 rounded font-semibold">
-          Apply Filter
-        </button>
-      </div>
-    </div>
+  document.getElementById("uploadForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fileInput = document.getElementById("logFile");
+    if (!fileInput.files[0]) return alert("Please select a .log file.");
 
-    <!-- Logs Display -->
-    <section class="mb-8">
-      <h2 class="text-2xl font-semibold mb-2">📄 Logs</h2>
-      <ul id="logList" class="bg-gray-800 p-4 rounded max-h-64 overflow-auto text-sm space-y-1 border border-gray-700">
-        <li class="text-gray-400 italic">Logs will appear here...</li>
-      </ul>
-    </section>
+    const formData = new FormData();
+    formData.append("logFile", fileInput.files[0]);
 
-    <!-- Incidents Display -->
-    <section>
-      <h2 class="text-2xl font-semibold mb-2">🚨 Detected Incidents</h2>
-      <ul id="incidentList" class="bg-red-900 p-4 rounded max-h-64 overflow-auto text-sm space-y-1 border border-red-700">
-        <li class="text-red-300 italic">Incidents will appear here...</li>
-      </ul>
-    </section>
-  </div>
+    try {
+      const res = await fetch(`${API_URL}/api/logs/upload`, {
+        method: "POST",
+        body: formData,
+      });
 
-  <script>
-    const logList = document.getElementById("logList");
-    const incidentList = document.getElementById("incidentList");
-
-    document.getElementById("uploadForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const fileInput = document.getElementById("logFile");
-      if (!fileInput.files[0]) return alert("Please select a .log file.");
-
-      const formData = new FormData();
-      formData.append("logFile", fileInput.files[0]);
-
-      try {
-        const res = await fetch("/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!res.ok) throw new Error("Upload failed");
-        alert("✅ Log uploaded and analyzed!");
-        loadLogs();
-        fetchIncidents();
-      } catch (err) {
-        alert("❌ Upload failed: " + err.message);
-      }
-    });
-
-    async function loadLogs() {
-      try {
-        const res = await fetch("/logs");
-        const logs = await res.json();
-        if (logs.length === 0) {
-          logList.innerHTML = `<li class="text-gray-400 italic">No logs found.</li>`;
-        } else {
-          logList.innerHTML = logs.map(log => `<li>${log.timestamp || ""} - ${log.message}</li>`).join("");
-        }
-      } catch (err) {
-        logList.innerHTML = `<li class="text-red-400 italic">Error loading logs.</li>`;
-      }
-    }
-
-    async function fetchIncidents() {
-      const keyword = document.getElementById("search").value;
-      const from = document.getElementById("from").value;
-      const to = document.getElementById("to").value;
-
-      const query = new URLSearchParams({ keyword, from, to }).toString();
-
-      try {
-        const res = await fetch(`/api/incidents?${query}`);
-        const data = await res.json();
-
-        if (data.length === 0) {
-          incidentList.innerHTML = "<li class='text-red-300 italic'>No incidents found.</li>";
-          return;
-        }
-
-        incidentList.innerHTML = data
-          .map(incident => `<li>🔴 [${new Date(incident.timestamp).toLocaleString()}] ${incident.message}</li>`)
-          .join("");
-      } catch (err) {
-        incidentList.innerHTML = "<li class='text-red-300 italic'>Error fetching incidents.</li>";
-      }
-    }
-
-    // Initial load
-    window.onload = () => {
+      if (!res.ok) throw new Error("Upload failed");
+      alert("✅ Log uploaded and analyzed!");
       loadLogs();
       fetchIncidents();
-    };
-  </script>
-</body>
-</html>
+    } catch (err) {
+      alert("❌ Upload failed: " + err.message);
+    }
+  });
+
+  async function loadLogs() {
+    try {
+      const res = await fetch(`${API_URL}/api/logs`);
+      const logs = await res.json();
+
+      if (logs.length === 0) {
+        logList.innerHTML = `<li class="text-gray-400 italic">No logs found.</li>`;
+      } else {
+        logList.innerHTML = logs
+          .map(log => `<li>${log.timestamp || ""} - ${log.message}</li>`)
+          .join("");
+      }
+    } catch {
+      logList.innerHTML = `<li class="text-red-400 italic">Error loading logs.</li>`;
+    }
+  }
+
+  async function fetchIncidents() {
+    const keyword = document.getElementById("search").value;
+    const from = document.getElementById("from").value;
+    const to = document.getElementById("to").value;
+
+    const query = new URLSearchParams({ keyword, from, to }).toString();
+
+    try {
+      const res = await fetch(`${API_URL}/api/logs/incidents?${query}`);
+      const data = await res.json();
+
+      if (data.length === 0) {
+        incidentList.innerHTML =
+          "<li class='text-red-300 italic'>No incidents found.</li>";
+        return;
+      }
+
+      incidentList.innerHTML = data
+        .map(
+          incident =>
+            `<li>🔴 [${new Date(incident.timestamp).toLocaleString()}] ${incident.message}</li>`
+        )
+        .join("");
+    } catch {
+      incidentList.innerHTML =
+        "<li class='text-red-300 italic'>Error fetching incidents.</li>";
+    }
+  }
+
+  window.onload = () => {
+    loadLogs();
+    fetchIncidents();
+  };
+</script>
