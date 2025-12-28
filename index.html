@@ -1,80 +1,165 @@
-<script>
-  const API_URL = "https://your-backend-name.onrender.com";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Digital Forensics Tool</title>
 
-  const logList = document.getElementById("logList");
-  const incidentList = document.getElementById("incidentList");
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
 
-  document.getElementById("uploadForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const fileInput = document.getElementById("logFile");
-    if (!fileInput.files[0]) return alert("Please select a .log file.");
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-    const formData = new FormData();
-    formData.append("logFile", fileInput.files[0]);
+</head>
 
-    try {
-      const res = await fetch(`${API_URL}/api/logs/upload`, {
+<body class="bg-gray-900 text-gray-100 min-h-screen p-6">
+
+  <div class="max-w-6xl mx-auto">
+
+    <!-- HEADER -->
+    <h1 class="text-4xl font-bold text-center mb-8 flex justify-center items-center gap-3">
+      <i class="fa-solid fa-shield-halved text-blue-400"></i>
+      Digital Forensics Dashboard
+    </h1>
+
+    <!-- DASHBOARD CARDS -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="bg-gray-800 p-5 rounded-lg shadow text-center">
+        <i class="fa-solid fa-file-lines text-3xl text-green-400 mb-2"></i>
+        <p class="text-lg font-semibold">Logs</p>
+        <p id="logCount" class="text-2xl font-bold">0</p>
+      </div>
+
+      <div class="bg-gray-800 p-5 rounded-lg shadow text-center">
+        <i class="fa-solid fa-triangle-exclamation text-3xl text-red-400 mb-2"></i>
+        <p class="text-lg font-semibold">Incidents</p>
+        <p id="incidentCount" class="text-2xl font-bold">0</p>
+      </div>
+
+      <div class="bg-gray-800 p-5 rounded-lg shadow text-center">
+        <i class="fa-solid fa-server text-3xl text-blue-400 mb-2"></i>
+        <p class="text-lg font-semibold">Backend Status</p>
+        <p class="text-green-400 font-bold">Connected</p>
+      </div>
+    </div>
+
+    <!-- UPLOAD -->
+    <form id="uploadForm" class="bg-gray-800 p-6 rounded-lg shadow mb-8">
+      <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+        <i class="fa-solid fa-upload"></i> Upload Log File
+      </h2>
+
+      <input type="file" id="logFile" accept=".log,.json"
+        class="w-full p-2 mb-4 rounded text-black bg-white" />
+
+      <button type="submit"
+        class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-semibold flex items-center gap-2">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        Upload & Analyze
+      </button>
+    </form>
+
+    <!-- FILTER -->
+    <div class="bg-gray-800 p-6 rounded-lg shadow mb-8">
+      <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+        <i class="fa-solid fa-filter"></i> Filter Incidents
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <input id="search" placeholder="Keyword"
+          class="p-2 rounded text-black" />
+        <input type="date" id="from" class="p-2 rounded text-black" />
+        <input type="date" id="to" class="p-2 rounded text-black" />
+        <button onclick="fetchIncidents()"
+          class="bg-yellow-500 hover:bg-yellow-600 px-4 py-2 rounded font-semibold">
+          Apply
+        </button>
+      </div>
+    </div>
+
+    <!-- LOGS -->
+    <section class="mb-8">
+      <h2 class="text-2xl font-semibold mb-3 flex items-center gap-2">
+        <i class="fa-solid fa-list"></i> Logs
+      </h2>
+      <ul id="logList"
+        class="bg-gray-800 p-4 rounded max-h-64 overflow-auto space-y-1 text-sm">
+        <li class="italic text-gray-400">No logs yet</li>
+      </ul>
+    </section>
+
+    <!-- INCIDENTS -->
+    <section>
+      <h2 class="text-2xl font-semibold mb-3 flex items-center gap-2 text-red-400">
+        <i class="fa-solid fa-bug"></i> Detected Incidents
+      </h2>
+      <ul id="incidentList"
+        class="bg-red-900 p-4 rounded max-h-64 overflow-auto space-y-1 text-sm">
+        <li class="italic text-red-300">No incidents yet</li>
+      </ul>
+    </section>
+
+  </div>
+
+  <!-- SCRIPT -->
+  <script>
+    const API_URL = "https://your-backend-name.onrender.com";
+
+    const logList = document.getElementById("logList");
+    const incidentList = document.getElementById("incidentList");
+    const logCount = document.getElementById("logCount");
+    const incidentCount = document.getElementById("incidentCount");
+
+    document.getElementById("uploadForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const file = document.getElementById("logFile").files[0];
+      if (!file) return alert("Select a file");
+
+      const formData = new FormData();
+      formData.append("logFile", file);
+
+      await fetch(`${API_URL}/api/logs/upload`, {
         method: "POST",
-        body: formData,
+        body: formData
       });
 
-      if (!res.ok) throw new Error("Upload failed");
-      alert("✅ Log uploaded and analyzed!");
       loadLogs();
       fetchIncidents();
-    } catch (err) {
-      alert("❌ Upload failed: " + err.message);
-    }
-  });
+    });
 
-  async function loadLogs() {
-    try {
+    async function loadLogs() {
       const res = await fetch(`${API_URL}/api/logs`);
       const logs = await res.json();
+      logCount.innerText = logs.length;
 
-      if (logs.length === 0) {
-        logList.innerHTML = `<li class="text-gray-400 italic">No logs found.</li>`;
-      } else {
-        logList.innerHTML = logs
-          .map(log => `<li>${log.timestamp || ""} - ${log.message}</li>`)
-          .join("");
-      }
-    } catch {
-      logList.innerHTML = `<li class="text-red-400 italic">Error loading logs.</li>`;
+      logList.innerHTML = logs.map(l =>
+        `<li>📄 ${l.timestamp || ""} - ${l.message}</li>`
+      ).join("");
     }
-  }
 
-  async function fetchIncidents() {
-    const keyword = document.getElementById("search").value;
-    const from = document.getElementById("from").value;
-    const to = document.getElementById("to").value;
+    async function fetchIncidents() {
+      const q = new URLSearchParams({
+        keyword: search.value,
+        from: from.value,
+        to: to.value
+      });
 
-    const query = new URLSearchParams({ keyword, from, to }).toString();
-
-    try {
-      const res = await fetch(`${API_URL}/api/logs/incidents?${query}`);
+      const res = await fetch(`${API_URL}/api/logs/incidents?${q}`);
       const data = await res.json();
+      incidentCount.innerText = data.length;
 
-      if (data.length === 0) {
-        incidentList.innerHTML =
-          "<li class='text-red-300 italic'>No incidents found.</li>";
-        return;
-      }
-
-      incidentList.innerHTML = data
-        .map(
-          incident =>
-            `<li>🔴 [${new Date(incident.timestamp).toLocaleString()}] ${incident.message}</li>`
-        )
-        .join("");
-    } catch {
-      incidentList.innerHTML =
-        "<li class='text-red-300 italic'>Error fetching incidents.</li>";
+      incidentList.innerHTML = data.map(i =>
+        `<li>❗ ${new Date(i.timestamp).toLocaleString()} - ${i.message}</li>`
+      ).join("");
     }
-  }
 
-  window.onload = () => {
-    loadLogs();
-    fetchIncidents();
-  };
-</script>
+    window.onload = () => {
+      loadLogs();
+      fetchIncidents();
+    };
+  </script>
+
+</body>
+</html>
